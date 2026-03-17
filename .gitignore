@@ -1,0 +1,30 @@
+# Python - Loại bỏ các file biên dịch
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Môi trường ảo (BẮT BUỘC PHẢI CÓ)
+venv/
+env/
+.env
+
+# Django
+db.sqlite3
+media/
+staticfiles/
+
+# FastAPI / AI Models
+# Chỉ đẩy code training, không đẩy file model nặng (nếu >100MB)
+*.pth
+*.onnx
+*.weights
+# Lưu ý: Nếu file model nhẹ, bạn có thể xóa dòng này để push lên
+
+# OS & Editors
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
