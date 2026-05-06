@@ -51,7 +51,3 @@ MathPro là một nền tảng học tập trực tuyến dành cho học sinh T
    - `cd frontend`
    - `npm install`
    - `npm run dev`.
-
-## Tài khoản mẫu
-- **Giáo viên**: `teacher` / `Teacher@123`
-- **Học sinh**: `student1` / `Student@123`
