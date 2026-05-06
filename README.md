@@ -19,9 +19,24 @@ MathPro là một nền tảng học tập trực tuyến dành cho học sinh T
 
 ## Hướng dẫn cài đặt (Local)
 
-1. **Chuẩn bị Database**:
-   - Tạo database `mathpro_db` trong PostgreSQL.
-   - Chạy script `instruction/script_db_create.sql` để tạo bảng.
+1. **Cấu hình môi trường**:
+   - Tạo file `.env` tại thư mục `backend/` dựa trên mẫu `.env.example`.
+   - Các biến môi trường cần thiết:
+     ```env
+     # Database
+     DB_NAME=db_datn_2026
+     DB_USER=postgres
+     DB_PASSWORD=your_password
+     
+     # Django
+     SECRET_KEY=your_secret_key
+     
+     # Gemini API
+     GEMINI_API_KEY=your_gemini_api_key
+     PGCRYPTO_KEY=your_pgcrypto_key
+     ```
+
+2. **Chuẩn bị Database**:
 
 2. **Backend**:
    - `cd backend`
