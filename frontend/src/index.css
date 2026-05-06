@@ -1,0 +1,199 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #1e3a5f;
+  --color-primary-light: #2c5282;
+  --color-primary-dark: #152942;
+  --color-accent: #f5a623;
+  --color-accent-hover: #e09612;
+  --color-success: #10b981;
+  --color-error: #ef4444;
+  --color-warning: #f59e0b;
+}
+
+:root {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+  color-scheme: light;
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+
+/* Base styles */
+body {
+  margin: 0;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Glassmorphism & Cards */
+.mp-glass {
+  background: rgba(30, 58, 95, 0.95); /* Màu đậm hơn để text trắng nổi bật */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mp-card {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.75rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f1f5f9;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mp-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* Buttons */
+.btn-primary {
+  @apply bg-primary text-white px-6 py-2.5 rounded-lg font-semibold 
+         hover:bg-primary-light active:scale-95 transition-all 
+         shadow-lg shadow-primary/20 flex items-center justify-center gap-2;
+}
+
+.btn-accent {
+  @apply bg-accent text-white px-6 py-2.5 rounded-lg font-semibold 
+         hover:bg-accent-hover active:scale-95 transition-all 
+         shadow-lg shadow-accent/20 flex items-center justify-center gap-2;
+}
+
+/* Inputs */
+.mp-input {
+  @apply w-full px-4 py-3 rounded-xl border border-slate-200 bg-white
+         focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary
+         transition-all placeholder:text-slate-400 text-slate-700;
+}
+
+.input-wrapper {
+  @apply relative flex items-center;
+}
+
+.input-icon {
+  @apply absolute left-4 text-slate-400 transition-colors;
+}
+
+.input-wrapper:focus-within .input-icon {
+  @apply text-primary;
+}
+
+.input-wrapper .mp-input {
+  @apply pl-11;
+}
+
+.input-icon-right {
+  @apply absolute right-4 text-slate-400 hover:text-slate-600 cursor-pointer p-1;
+}
+
+/* Banners & Animations */
+.error-banner {
+  @apply bg-red-50 border border-red-100 text-red-600 p-4 rounded-xl text-sm;
+  animation: slideInDown 0.4s ease-out forwards;
+}
+
+@keyframes slideInDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.step-badge {
+  @apply w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center 
+         text-xs font-bold shadow-sm;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Warning Box */
+.warning-box {
+  @apply bg-amber-50 border border-amber-100 p-4 rounded-xl flex gap-3 text-sm text-amber-800 leading-relaxed;
+}
+
+/* Layout Helpers */
+.container-center {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* ── Global: tất cả button, a, [role=button] đều có cursor pointer ── */
+button, a, [role="button"], select, label[for], summary {
+  cursor: pointer;
+}
+
+/* ── Animations ── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.93); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn     { animation: fadeIn 0.25s ease-out forwards; }
+.animate-fadeInUp   { animation: fadeInUp 0.3s ease-out forwards; }
+.animate-fadeInDown { animation: fadeInDown 0.2s ease-out forwards; }
+.animate-scaleIn    { animation: scaleIn 0.25s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+.animate-slideInUp  { animation: slideInUp 0.35s ease-out forwards; }
+
+/* Modal overlay fade */
+.modal-overlay {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+.modal-content {
+  animation: scaleIn 0.25s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+
+/* Card hover lift */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px -8px rgba(30, 58, 95, 0.15);
+}
