@@ -475,7 +475,7 @@ def attempt_detail(request, attempt_id):
             for ans in answers
         ]
 
-        return JsonResponse({
+        response_data = {
             "id": attempt.id,
             "exam_id": attempt.exam_id,
             "attempt_number": attempt.attempt_number,
@@ -484,6 +484,11 @@ def attempt_detail(request, attempt_id):
             "score": float(attempt.score) if attempt.score is not None else None,
             "is_auto_submitted": attempt.is_auto_submitted,
             "answers": answers_list
-        })
+        }
+
+        if attempt.exam.answer_pdf:
+            response_data["answer_pdf_url"] = attempt.exam.answer_pdf.url
+
+        return JsonResponse(response_data)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)

@@ -1,5 +1,5 @@
 MATHPRO — TASK TRACKING
-Cập nhật lần cuối: 06/05/2026 12:02
+Cập nhật lần cuối: 13/05/2026 08:20
 ================================================================
 
 LEGEND: [ ] Chưa làm  [~] Đang làm  [x] Hoàn thành  [!] Có vấn đề
@@ -76,6 +76,92 @@ PHASE 9 — SEED DATA & HOÀN THIỆN
 ================================================================
 GHI CHÚ / VẤN ĐỀ CẦN XỬ LÝ
 ================================================================
+- [07/05/2026] Đã thêm chức năng Khóa và Mở khóa tài khoản học sinh cho role Teacher (tại module StudentManager) theo cơ chế Soft Delete.
+- [13/05/2026] Đã đồng bộ toàn bộ Django models với schema v2.0 (script_db_create.sql):
+    + Cập nhật comment đầy đủ cho tất cả 7 models (accounts, topics, questions, exams, practice, ai_tutor, documents)
+    + Thêm model Video (bảng videos) trong documents/models.py — lưu youtube_id, gắn topic, soft delete
+    + Thêm model Comment (bảng comments) trong documents/models.py — bình luận 2 cấp, dùng chung cho video và document
+    + Tất cả model đều managed=False, db_table khớp chính xác với tên bảng trong SQL
+- [13/05/2026] TASK 4B.1 HOÀN THÀNH — Tạo app Django videos:
+    + ALTER TABLE videos ADD COLUMN category VARCHAR(20) CHECK IN ('topic_lesson','live_session')
+    + Tạo apps/videos/ với models.py (Video), views.py (video_list, video_detail), urls.py
+    + Video đã tách khỏi documents/models.py sang apps.videos riêng
+    + Đăng ký apps.videos trong INSTALLED_APPS, route /api/videos/ trong config/urls.py
+    + Kiểm thử: manage.py check → 0 lỗi; Video.objects.all() → QuerySet []; category cột có trong DB
+- [13/05/2026] TASK 4B.2 HOÀN THÀNH — Videos API Backend:
+    + GET /api/videos/ + POST (teacher) — list/create với filter topic_id, category
+    + GET /api/videos/<id>/ + PUT + DELETE (teacher) — detail/update/soft-delete
+    + GET /api/videos/live-sessions/ — alias lấy video live_session DESC created_at
+    + Validate youtube_id: regex ^[a-zA-Z0-9_-]{11}$ → 400 nếu sai
+    + embed_url tính động trong Python, không lưu DB
+    + Kiem thu: 25/25 PASS (GET list, filter, POST valid/invalid, PUT, DELETE, no-auth)
+- [13/05/2026] TASK 4B.3 HOÀN THÀNH — Seed data Videos:
+    + Bổ sung 3 topic cấp 3 vào seed_topics(): gioi_han, dao_ham, log_co_so
+    + Thêm seed_videos(): 3 topic_lesson (gắn topic cấp 3) + 2 live_session (không topic)
+    + Dùng raw SQL INSERT trong connection.cursor() — tránh managed=False conflict
+    + Idempotent: bỏ qua nếu đã có video (Video.objects.filter(is_deleted=False).exists())
+    + Kiểm thử: 9/9 PASS — GET /api/videos/=5, live-sessions/=2, topic_lesson=3
+- [13/05/2026] TASK 4B.4 HOÀN THÀNH — Frontend: Trang Video Bài Giảng:
+    + Tạo src/api/videos.js: getVideos, getLiveSessions, getVideoDetail, createVideo, updateVideo, deleteVideo
+    + Tạo pages/Videos.jsx: layout 2 cột w-1/3 + w-2/3, 2 tabs Theo chuyên đề / Buổi học trực tiếp
+    + TabByTopic: dùng lại TopicTreeNode, click topic → GET videos theo topic_id
+    + TabLiveSessions: GET /live-sessions/ → danh sách card có thumbnail YouTube
+    + VideoPlayer: <iframe aspect-video> cập nhật khi chọn card, hiển thị meta + badge category
+    + Navbar: thêm link "Video bài giảng" giữa Chuyên đề và Đề thi (icon PlayCircle)
+    + App.jsx: thêm route /videos (public)
+    + Kiểm thử browser: 0 console error, click card → iframe load, tab switch đúng
+- [13/05/2026] TASK 4B.5 HOÀN THÀNH — Frontend: Quản lý Video (Teacher):
+    + Tạo pages/teacher/VideoManager.jsx: bảng CRUD đầy đủ có thumbnail 80×45, badge category
+    + Form modal thêm/sửa: validate youtube_id realtime (regex 11 ký tự), preview iframe ngay khi hợp lệ
+    + Dropdown topic: GET /api/topics/?level=3, ẩn khi category=live_session, reset topic_id=null
+    + Filter bar: lọc theo Tất cả / Bài giảng / Buổi học — stat cards cập nhật đồng bộ
+    + Confirm delete modal trước khi soft-delete
+    + TeacherLayout: thêm SidebarItem "Video bài giảng" với accordion 2 sub-item (Danh sách, Thêm video)
+    + App.jsx: thêm route /teacher/videos và /teacher/videos/add (protected teacher)
+    + Kiểm thử: sidebar expand ✓, bảng 5 video ✓, form preview iframe ✓, filter Buổi học = 2 ✓
+- [13/05/2026] TASK 4C.1 HOÀN THÀNH — Cập nhật Database & App Comments:
+    + Tạo apps/comments: startapp, apps.py, models.py (managed=False), urls.py
+    + FK user → accounts.User, FK parent → self (null=True, reply 1 cấp)
+    + Đăng ký INSTALLED_APPS và /api/comments/ trong config/urls.py
+    + Kiểm thử: manage.py check = 0 issues ✓, Comment.objects.count() = 0 ✓
+- [13/05/2026] TASK 4C.2 HOÀN THÀNH — Comments API (Backend):
+    + GET /api/comments/?target_type=video&target_id=1 — public, trả cây 2 cấp
+    + POST /api/comments/ — auth, validate target_type/content, giới hạn reply cấp 1
+    + PATCH /api/comments/<id>/ — auth, chỉ chủ comment, update content + updated_at
+    + DELETE /api/comments/<id>/ — auth, chủ hoặc teacher, soft delete + cascade replies
+    + Kiểm thử: GET api trả {"results":[],"total":0} ✓
+- [13/05/2026] TASK 4C.3 HOÀN THÀNH — Frontend: CommentSection Component:
+    + Tạo src/api/comments.js: getComments, createComment, editComment, deleteComment
+    + Tạo src/components/CommentSection.jsx: avatar initials + màu hash user_id, relative time vi
+    + Inline reply box (replyingTo state), inline edit (editingId state), confirm delete
+    + Hiện "[Bình luận đã bị xóa]" nếu is_deleted, ẩn nút reply ở cấp 2
+    + Tích hợp vào Videos.jsx thay placeholder cũ
+    + Kiểm thử: gửi comment → hiện ngay "bây giờ", avatar ST, action Trả lời/Sửa/Xóa ✓
+- [13/05/2026] TASK 4D.1 HOÀN THÀNH — Cập nhật Parse PDF: Trích xuất kết hợp Hình ảnh + Văn bản:
+    + gemini.py: thêm hàm parse_pdf_multimodal(pages_data) — gọi Gemini Vision multimodal
+      - Mỗi page: render PNG (dpi=150) base64 inline + text extract gửi kèm
+      - Batch tối đa 5 trang/request để tránh timeout
+      - Dùng types.Part.from_bytes() cho ảnh inline (không upload_file)
+      - Prompt mới hỗ trợ has_image + image_description trong JSON output
+    + views.py: cập nhật parse_pdf() dùng parse_pdf_multimodal thay parse_pdf_with_gemini
+      - Bước 1: render từng trang thành PNG (dpi=150) + lấy text
+      - Bước 2: extract ảnh embedded → lưu media/question_images/parse_{ts}_{idx}.ext
+      - Bước 3: gọi Gemini Vision multimodal theo batch
+      - Bước 4: gắn image_desc block {type:"image_desc",value:"..."} vào question.blocks
+      - Response thêm trường extracted_images: [] chứa URL ảnh đã lưu
+    + manage.py check = 0 issues ✓
+- [13/05/2026] TASK 4D.2 HOÀN THÀNH — Frontend UploadPDF: Hiển thị Hình ảnh:
+    + Thêm helper getImageDesc(q): lấy image_description từ block type='image_desc' hoặc q.image_description
+    + QuestionReviewCard: prop parsedImageUrl mới, previewUrl ưu tiên imageFile > parsedImageUrl > q.image.url
+    + Badge "📷 Có hình vẽ" màu vàng (bg-yellow-100 text-yellow-700) trong header card khi q.has_image=true
+    + Vùng ảnh: nếu chỉ có mô tả (không ảnh) → hiện text italic xám "Hình vẽ: {desc}"
+    + Nếu có previewUrl từ parsedImageUrl → hiện ảnh + nhãn "📷 Ảnh trích xuất từ PDF"
+    + Ảnh extracted không có nút X (chỉ ảnh upload thủ công mới có nút xóa)
+    + State extractedImages: lưu result.extracted_images[] từ response parsePDF
+    + handleUpload: gọi setExtractedImages(result.extracted_images || []), reset images={}
+    + handleSave: nếu q.has_image và không có images[idx] → append image_url (URL extracted)
+      mapping theo thứ tự: câu has_image thứ n → extractedImages[n]
+    + Grid câu hỏi: tính hasImgCount để map đúng parsedImgUrl cho từng card
 
 ================================================================
 THƯ VIỆN BỔ SUNG (ngoài danh sách gốc)

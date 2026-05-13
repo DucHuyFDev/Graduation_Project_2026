@@ -1,0 +1,195 @@
+Use case Đăng nhập
+-	Tên use case: Đăng nhập
+-	Mô tả vắn tắt: Use case này cho phép người dùng (Học sinh, Giáo viên, Admin) xác thực danh tính để truy cập vào các chức năng theo phân quyền trên hệ thống.
+-	Actor: Học sinh, Giáo viên, Admin.
+-	Luồng sự kiện:
+o	Luồng cơ bản:
+1.	Use case bắt đầu khi người dùng click chọn nút “Đăng nhập” trên trang chủ; Hệ thống hiển thị giao diện Form đăng nhập gồm các trường: Email và Mật khẩu.
+2.	Người dùng nhập đầy đủ thông tin Email, Mật khẩu và nhấn nút “Đăng nhập”. Hệ thống gửi yêu cầu xác thực thông tin tài khoản (Request) về phía Server.
+3.	Hệ thống thực hiện truy vấn trong cơ sở dữ liệu (Bảng NGUOI_DUNG) dựa trên Email người dùng cung cấp.
+4.	Hệ thống kiểm tra tính hợp lệ của tài khoản và so khớp mật khẩu đã mã hóa (Bcrypt).
+5.	Hệ thống khởi tạo phiên làm việc (JWT Token), xác định vai trò (Role) và chuyển hướng người dùng về trang Dashboard tương ứng (Học sinh/Giáo viên/Admin). Use case kết thúc.
+o	Luồng rẽ nhánh:
+1.	Ở bước 5, nếu Email không tồn tại hoặc Mật khẩu không trùng khớp, hệ thống hiển thị thông báo lỗi: “Email hoặc mật khẩu không chính xác”. Người dùng có thể nhập lại hoặc thoát ra. Use case kết thúc.
+2.	Ở bước 2, nếu người dùng không nhập thông tin ở các trường bắt buộc, hệ thống hiển thị thông báo lỗi: “Trường này không được phép để trống”. Người dùng nhập lại.
+3.	Tại bất kỳ thời điểm nào trong luồng cơ bản, nếu không kết nối được với cơ sở dữ liệu, hệ thống hiển thị thông báo lỗi: "Kết nối thất bại, vui lòng thử lại sau". Use case kết thúc.
+-	Các yêu cầu đặc biệt: Thời gian xử lý xác thực từ lúc nhấn nút đến khi chuyển hướng không quá 2 giây.
+-	Tiền điều kiện: Người dùng đã có tài khoản trên hệ thống.
+-	Hậu điều kiện: Người dùng truy cập thành công, Token được lưu trữ tại trình duyệt để sử dụng cho các phiên làm việc tiếp theo.
+-	Điểm mở rộng: Không
+
+Use case: Đăng ký
+•	Tên use case: Đăng ký
+•	Mô tả vắn tắt: Use case này cho phép người dùng tạo tài khoản mới trên hệ thống để có thể đăng nhập và sử dụng các tính năng luyện thi.
+•	Actor: Khách.
+•	Luồng sự kiện:
+o	Luồng cơ bản:
+1.	Use case bắt đầu khi người dùng click chọn nút “Đăng ký” trên trang chủ; Hệ thống hiển thị giao diện Form đăng ký gồm các trường: Họ và tên, Email, Số điện thoại, Mật khẩu và Xác nhận mật khẩu.
+2.	Người dùng nhập đầy đủ các thông tin bắt buộc và nhấn nút “Đăng ký”. Hệ thống thực hiện gửi yêu cầu tạo tài khoản (Request) về phía Server.
+3.	Hệ thống thực hiện kiểm tra định dạng dữ liệu (Validation) và truy vấn trong cơ sở dữ liệu (Bảng NGUOI_DUNG) để kiểm tra sự tồn tại của Email.
+4.	Hệ thống thực hiện mã hóa mật khẩu bằng thuật toán Bcrypt và lưu thông tin người dùng mới vào bảng NGUOI_DUNG với vai trò mặc định là "Học sinh".
+5.	Hệ thống hiển thị thông báo “Đăng ký tài khoản thành công” và tự động chuyển hướng người dùng về trang giao diện Đăng nhập. Use case kết thúc.
+o	Luồng rẽ nhánh:
+1.	Ở bước 3, nếu Email đã tồn tại trong hệ thống, Hệ thống hiển thị thông báo lỗi: “Email này đã được sử dụng”. Người dùng có thể nhập Email khác hoặc thoát ra. Use case kết thúc.
+2.	Ở bước 3, nếu định dạng dữ liệu không hợp lệ (Email sai cú pháp, Mật khẩu và Xác nhận mật khẩu không khớp), Hệ thống hiển thị thông báo lỗi tương ứng tại trường đó. Người dùng thực hiện sửa lại thông tin.
+3.	Ở bước 2, nếu người dùng không nhập thông tin ở các trường bắt buộc, Hệ thống hiển thị thông báo lỗi: “Trường này không được phép để trống”. Người dùng nhập lại.
+4.	Tại bất kỳ thời điểm nào trong luồng cơ bản, nếu không kết nối được với cơ sở dữ liệu, Hệ thống hiển thị thông báo lỗi: "Kết nối thất bại, vui lòng thử lại sau". Use case kết thúc.
+•	Các yêu cầu đặc biệt: Hệ thống phải đảm bảo tính duy nhất của Email trên toàn bộ cơ sở dữ liệu.
+•	Tiền điều kiện: Người dùng chưa đăng nhập và chưa có tài khoản trên hệ thống.
+•	Hậu điều kiện: Một bản ghi mới được tạo trong bảng NGUOI_DUNG. Người dùng có thể sử dụng thông tin vừa đăng ký để thực hiện Use case Đăng nhập.
+•	Điểm mở rộng: Không có.
+
+Use case: Xem danh sách tài liệu
+•	Tên use case: Xem danh sách tài liệu
+•	Mô tả vắn tắt: Use case này cho phép người dùng (Khách) xem danh mục các tài liệu học tập, chuyên đề PDF và video bài giảng có trên hệ thống để tham khảo trước khi quyết định đăng ký/đăng nhập.
+•	Actor: Khách.
+•	Luồng sự kiện:
+o	Luồng cơ bản:
+1.	Use case bắt đầu khi người dùng click chọn mục “Kho tài liệu” trên thanh điều hướng; Hệ thống thực hiện gửi yêu cầu lấy danh sách tài liệu (Request) về phía Server.
+2.	Hệ thống thực hiện truy vấn trong cơ sở dữ liệu (Bảng TAI_LIEU) để lấy các thông tin: Tên tài liệu, Loại (PDF/Video), Chuyên đề, Lớp và Ảnh minh họa (Thumbnail).
+3.	Hệ thống hiển thị danh sách tài liệu dưới dạng lưới (Grid) kèm theo các bộ lọc theo môn học và khối lớp.
+4.	Người dùng thực hiện tìm kiếm theo tên tài liệu hoặc chọn tiêu chí lọc; Hệ thống xử lý và cập nhật danh sách hiển thị tương ứng trên giao diện.
+5.	Người dùng click vào một tài liệu cụ thể; Hệ thống hiển thị thông báo yêu cầu "Đăng nhập để xem nội dung chi tiết". Use case kết thúc.
+o	Luồng rẽ nhánh:
+1.	Ở bước 2, nếu kho tài liệu trống, Hệ thống hiển thị thông báo: “Hiện tại chưa có tài liệu nào trong mục này”. Use case kết thúc.
+2.	Ở bước 4, nếu không tìm thấy kết quả phù hợp với từ khóa tìm kiếm, Hệ thống hiển thị thông báo: “Không tìm thấy tài liệu phù hợp”. Người dùng có thể thực hiện tìm kiếm lại.
+3.	Tại bất kỳ thời điểm nào trong luồng cơ bản, nếu không kết nối được với cơ sở dữ liệu, Hệ thống hiển thị thông báo lỗi: “Kết nối thất bại, vui lòng thử lại sau”. Use case kết thúc.
+•	Các yêu cầu đặc biệt: Hệ thống phải hỗ trợ tải trước (Lazy loading) hình ảnh Thumbnail để tối ưu tốc độ cuộn trang.
+•	Tiền điều kiện: Người dùng truy cập vào website (chưa cần đăng nhập).
+•	Hậu điều kiện: Không
+•	Điểm mở rộng: Nếu người dùng đã đăng nhập, hệ thống sẽ bỏ qua bước 5 và cho phép xem trực tiếp nội dung
+
+Use case: Xem danh sách đề thi thử
+•	Tên use case: Xem danh sách đề thi thử
+•	Mô tả vắn tắt: Use case này cho phép người dùng (Khách) xem danh mục các bộ đề thi thử hiện có trên hệ thống để tham khảo trước khi đăng ký thành viên.
+•	Actor: Khách.
+•	Luồng sự kiện:
+o	Luồng cơ bản:
+1.	Use case bắt đầu khi người dùng click chọn mục “Đề thi thử” trên thanh điều hướng; Hệ thống thực hiện gửi yêu cầu lấy danh sách đề thi (Request) về phía Server.
+2.	Hệ thống thực hiện truy vấn trong cơ sở dữ liệu (Bảng DE_THI) để lấy các thông tin: Tên đề, Chuyên đề, Thời gian làm bài và Số lượng câu hỏi.
+3.	Hệ thống hiển thị danh sách đề thi dưới dạng các thẻ (Cards) kèm theo bộ lọc theo Chuyên đề và ô tìm kiếm theo tên đề.
+4.	Người dùng thực hiện nhập từ khóa tìm kiếm hoặc chọn chuyên đề cụ thể; Hệ thống xử lý và cập nhật danh sách hiển thị tương ứng trên giao diện.
+5.	Người dùng click vào nút "Làm bài" trên một đề thi cụ thể; Hệ thống hiển thị thông báo: “Vui lòng đăng nhập để thực hiện bài thi này”. Use case kết thúc.
+o	Luồng rẽ nhánh:
+1.	Ở bước 2, nếu hệ thống chưa có dữ liệu đề thi, Hệ thống hiển thị thông báo: “Hiện tại chưa có đề thi nào trong danh mục này”. Use case kết thúc.
+2.	Ở bước 4, nếu không tìm thấy kết quả phù hợp với chuyên đề/từ khóa, Hệ thống hiển thị thông báo: “Không tìm thấy đề thi phù hợp”. Người dùng có thể thực hiện chọn hoặc tìm kiếm lại.
+3.	Tại bất kỳ thời điểm nào trong luồng cơ bản, nếu không kết nối được với cơ sở dữ liệu, Hệ thống hiển thị thông báo lỗi: “Kết nối thất bại, vui lòng thử lại sau”. Use case kết thúc.
+•	Các yêu cầu đặc biệt: Giao diện tập trung hiển thị danh sách đề, không có các bộ lọc về Khối lớp và Môn học.
+•	Tiền điều kiện: Người dùng truy cập vào website (chưa đăng nhập).
+•	Hậu điều kiện: Người dùng nắm bắt được kho đề thi và được dẫn hướng tới trang Đăng nhập/Đăng ký.
+Use case: Xem danh sách đề luyện tập theo chuyên đề
+•	Tên use case: Xem danh sách đề luyện tập theo chuyên đề
+•	Mô tả vắn tắt: Use case này cho phép người dùng (Khách) xem danh mục các bộ đề luyện tập được phân loại theo từng chuyên đề kiến thức cụ thể để định hướng lộ trình học tập.
+•	Actor: Khách.
+•	Luồng sự kiện:
+o	Luồng cơ bản:
+1.	Use case bắt đầu khi người dùng click chọn mục “Luyện tập theo chuyên đề” trên thanh điều hướng; Hệ thống thực hiện gửi yêu cầu lấy danh sách các chuyên đề và số lượng đề tương ứng (Request) về phía Server.
+2.	Hệ thống thực hiện truy vấn trong cơ sở dữ liệu (Bảng CHUYEN_DE và DE_LUYEN_TAP) để lấy các thông tin: Tên chuyên đề, Mô tả ngắn, Số lượng bài tập hiện có.
+3.	Hệ thống hiển thị danh sách các chuyên đề dưới dạng các khối nội dung (Modules).
+4.	Người dùng click chọn vào một chuyên đề cụ thể (Ví dụ: Chuyên đề Hàm số); Hệ thống truy vấn và hiển thị danh sách các đề luyện tập chi tiết thuộc chuyên đề đó.
+5.	Người dùng click vào nút "Bắt đầu luyện tập" trên một đề cụ thể; Hệ thống hiển thị thông báo: “Vui lòng đăng nhập để thực hiện bài luyện tập này”. Use case kết thúc.
+o	Luồng rẽ nhánh:
+1.	Ở bước 2, nếu hệ thống chưa phân loại chuyên đề hoặc dữ liệu trống, Hệ thống hiển thị thông báo: “Dữ liệu đang được cập nhật, vui lòng quay lại sau”. Use case kết thúc.
+2.	Ở bước 4, nếu một chuyên đề chưa có đề luyện tập nào bên trong, Hệ thống hiển thị thông báo: “Chuyên đề này hiện chưa có bài luyện tập”. Người dùng có thể chọn chuyên đề khác.
+3.	Tại bất kỳ thời điểm nào trong luồng cơ bản, nếu không kết nối được với cơ sở dữ liệu, Hệ thống hiển thị thông báo lỗi: “Kết nối thất bại, vui lòng thử lại sau”. Use case kết thúc.
+•	Các yêu cầu đặc biệt: Giao diện phải trình bày các chuyên đề theo cấu trúc hình cây hoặc danh mục rõ ràng, giúp người dùng dễ dàng theo dõi mạch kiến thức.
+•	Tiền điều kiện: Người dùng truy cập vào website (chưa đăng nhập).
+•	Hậu điều kiện: Người dùng nắm được cấu trúc các chuyên đề kiến thức và được dẫn hướng tới trang Đăng nhập/Đăng ký để bắt đầu làm bài.
+•	Điểm mở rộng: Không có.
+
+
+
+
+
+Use case: Quản lý video
+•	Tên use case: Quản lý video.
+•	Mô tả vắn tắt: Admin thực hiện xem danh sách, tìm kiếm và lọc các video bài giảng đã được nhúng vào hệ thống để kiểm soát nội dung học trực quan cho học sinh.
+•	Actor: Admin.
+•	Luồng sự kiện:
+o	Luồng cơ bản:
+1.	Use case bắt đầu khi Admin truy cập vào mục "Quản lý Video bài giảng" trên bảng điều khiển.
+2.	Hệ thống truy vấn cơ sở dữ liệu và hiển thị danh sách các video (bao gồm: Tiêu đề video, Thumbnail thu nhỏ, Chuyên đề gắn kèm, và Ngày đăng).
+3.	Admin thực hiện các thao tác quản trị:
+	Tìm kiếm: Nhập tên bài giảng video vào ô tìm kiếm.
+	Lọc: Chọn lọc video theo Chuyên đề (Ví dụ: Lọc các video thuộc chuyên đề "Hình học không gian").
+4.	Hệ thống thực hiện lọc dữ liệu và cập nhật lại danh sách hiển thị tương ứng.
+5.	Admin xem xét nội dung hoặc chuẩn bị thực hiện các chức năng mở rộng (Extend): Thêm video, Cập nhật video, hoặc Xóa video.
+6.	Admin thoát khỏi giao diện quản lý. Use case kết thúc.
+o	Luồng rẽ nhánh:
+1.	Tại bước 4 (Không tìm thấy video): Nếu không có video nào thỏa mãn điều kiện tìm kiếm/lọc:
+	Hệ thống hiển thị thông báo: "Không tìm thấy video bài giảng phù hợp".
+	Hệ thống hiển thị danh sách trống và nút "Đặt lại bộ lọc".
+	Admin nhấn "Đặt lại" để quay về danh sách mặc định (Quay lại bước 2).
+•	Các yêu cầu đặc biệt:
+o	Kiểm tra trạng thái (Status Check): Hệ thống nên có cơ chế kiểm tra nhanh xem link YouTube có còn hoạt động hay đã bị chủ sở hữu xóa/ẩn (thông qua mã nhúng).
+o	Hiệu suất: Danh sách cần được phân trang để đảm bảo tốc độ tải khi số lượng video bài giảng lớn.
+o	Giao diện: Hiển thị Thumbnail từ YouTube để Admin dễ dàng nhận diện bài giảng mà không cần nhấn vào xem chi tiết.
+•	Tiền điều kiện: Admin đã đăng nhập thành công vào hệ thống.
+•	Hậu điều kiện:
+o	Trạng thái danh sách và các bộ lọc được lưu trữ trong phiên làm việc.
+o	Hệ thống xác định được ID video cụ thể để sẵn sàng cho các thao tác mở rộng tiếp theo.
+•	Điểm mở rộng (Extension Points):
+o	Thêm video.
+o	Cập nhật video.
+o	Xóa video.
+
+Use case mở rộng: Thêm video
+•	Tên use case: Thêm video.
+•	Mô tả vắn tắt: Admin thực hiện nhúng liên kết video bài giảng từ YouTube vào hệ thống, gắn kèm chuyên đề học tập để cung cấp nguồn học liệu trực quan cho học sinh.
+•	Actor: Admin.
+•	Luồng sự kiện:
+o	Luồng cơ bản:
+1.	Use case bắt đầu khi Admin nhấn nút "Thêm video mới" tại giao diện Quản lý video.
+2.	Hệ thống hiển thị Form nhập liệu bao gồm: Tiêu đề video, Chuyên đề (chọn từ danh mục chuyên đề), Đường dẫn video (YouTube URL) và Mô tả ngắn.
+3.	Admin nhập Tiêu đề, chọn Chuyên đề tương ứng và dán đường dẫn Video vào ô nhập liệu.
+4.	Hệ thống thực hiện kiểm tra tính hợp lệ của dữ liệu:
+	Kiểm tra định dạng URL (phải thuộc miền youtube.com hoặc youtu.be).
+	Sử dụng API của YouTube để kiểm tra tính tồn tại của video và tự động lấy ID video (Video_ID).
+5.	Admin kiểm tra lại thông tin và nhấn nút "Lưu".
+6.	Hệ thống khởi tạo bản ghi mới trong cơ sở dữ liệu, lưu trữ ID video và Thumbnail tự động lấy từ YouTube, sau đó gửi thông báo "Thêm video thành công". Use case kết thúc.
+o	Luồng rẽ nhánh:
+1.	Tại bước 4 (Lỗi đường dẫn): Nếu đường dẫn không đúng định dạng hoặc video bị chủ sở hữu chặn nhúng:
+	Hệ thống hiển thị thông báo lỗi: "Đường dẫn không hợp lệ hoặc video không cho phép nhúng".
+	Hệ thống ngăn chặn thao tác lưu và giữ nguyên thông tin để Admin sửa lỗi. Quay lại bước 3.
+2.	Tại bước 5 (Hủy thao tác): Nếu Admin nhấn "Hủy", hệ thống đóng form và không lưu bất kỳ dữ liệu nào.
+•	Các yêu cầu đặc biệt:
+o	Lấy Metadata tự động: Hệ thống nên tự động lấy ảnh Thumbnail (Maxresdefault) và thời lượng video từ YouTube API để làm phong phú dữ liệu hiển thị cho học sinh.
+o	Quy định bản quyền: Hệ thống chỉ lưu ID video và nhúng trình phát (Iframe), không tải tệp video về máy chủ để đảm bảo tính pháp lý và tiết kiệm băng thông.
+o	Giao diện: Sử dụng font chữ thường hệ thống cho toàn bộ Form và thông báo lỗi.
+•	Tiền điều kiện: Admin đã đăng nhập và đang ở giao diện Quản lý video.
+•	Hậu điều kiện:
+o	Bản ghi mới được lưu vào bảng VIDEO_BAI_GIANG.
+o	Video ngay lập tức xuất hiện trong mục bài giảng của học sinh thuộc chuyên đề đã chọn.
+
+Use case mở rộng: Cập nhật video
+•	Tên use case: Cập nhật video.
+•	Mô tả vắn tắt: Admin thực hiện chỉnh sửa tiêu đề, thay đổi chuyên đề gắn kèm hoặc thay thế liên kết nhúng (YouTube URL) của một video bài giảng đã tồn tại trên hệ thống.
+•	Actor: Admin.
+•	Luồng sự kiện:
+o	Luồng cơ bản:
+1.	Use case bắt đầu khi Admin chọn một video cụ thể từ danh sách và nhấn nút "Chỉnh sửa".
+2.	Hệ thống truy xuất dữ liệu hiện tại từ cơ sở dữ liệu và hiển thị lên Form cập nhật (Tiêu đề, Chuyên đề hiện tại, URL YouTube và Mô tả).
+3.	Admin thực hiện các thay đổi:
+	Thay đổi Tiêu đề hoặc Mô tả bài giảng.
+	Chọn lại Chuyên đề khác nếu muốn di chuyển video sang mục học tập mới.
+	Dán URL YouTube mới để thay thế nội dung video cũ.
+4.	Admin kiểm tra lại thông tin và nhấn nút "Lưu thay đổi".
+5.	Hệ thống thực hiện kiểm tra tính hợp lệ:
+	Kiểm tra định dạng URL mới (nếu có thay đổi).
+	Kiểm tra trạng thái video (có cho phép nhúng hay không) thông qua YouTube API.
+6.	Hệ thống ghi đè dữ liệu mới vào bản ghi tương ứng, cập nhật lại ID video và Thumbnail mới (nếu URL thay đổi), sau đó gửi thông báo "Cập nhật video thành công". Use case kết thúc.
+o	Luồng rẽ nhánh:
+1.	Tại bước 3 (Giữ nguyên URL): Nếu Admin chỉ sửa Tiêu đề/Chuyên đề mà không đổi URL: Hệ thống chỉ cập nhật các trường văn bản và giữ nguyên ID video cũ.
+2.	Tại bước 5 (Lỗi URL mới): Nếu đường dẫn video mới bị sai hoặc bị chặn quyền nhúng:
+	Hệ thống hiển thị cảnh báo lỗi chi tiết tại ô nhập liệu.
+	Hệ thống ngăn chặn thao tác lưu và giữ nguyên các thông tin Admin đang sửa.
+	Admin sửa lại URL và nhấn "Lưu". Quay về bước 5.
+•	Các yêu cầu đặc biệt:
+o	Tính tức thời: Sau khi cập nhật Chuyên đề, video phải biến mất khỏi chuyên đề cũ và xuất hiện ngay lập tức trong chuyên đề mới trên giao diện của Học sinh.
+o	Đồng bộ Metadata: Nếu URL thay đổi, hệ thống phải tự động gọi lại YouTube API để lấy Metadata mới (Ảnh đại diện, Thời lượng) để đảm bảo thông tin hiển thị luôn chính xác.
+o	Giao diện: Sử dụng font chữ thường hệ thống cho toàn bộ Form và thông báo.
+•	Tiền điều kiện: * Admin đã đăng nhập thành công.
+o	Video cần chỉnh sửa đang tồn tại và hiển thị trong danh sách Quản lý video.
+•	Hậu điều kiện:
+o	Bản ghi trong bảng VIDEO_BAI_GIANG được cập nhật các giá trị mới.
+o	Học sinh tiếp cận được nội dung video mới ngay sau khi Admin lưu thành công.

@@ -12,8 +12,10 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
 import Topics from './pages/Topics'
+import Videos from './pages/Videos'
 import ExamList from './pages/ExamList'
 import Documents from './pages/Documents'
+import DocumentDetail from './pages/DocumentDetail'
 
 // Pages — Student Protected
 import PracticeRoom from './pages/PracticeRoom'
@@ -29,6 +31,7 @@ import UploadPDF from './pages/teacher/UploadPDF'
 import ExamManager from './pages/teacher/ExamManager'
 import ExamQuestions from './pages/teacher/ExamQuestions'
 import DocumentManager from './pages/teacher/DocumentManager'
+import VideoManager from './pages/teacher/VideoManager'
 import StudentManager from './pages/teacher/StudentManager'
 import { TeacherStats } from './pages/teacher/TeacherPages'
 
@@ -70,10 +73,19 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/topics" element={<Topics />} />
+            <Route path="/videos" element={<Videos />} />
             <Route path="/exams" element={<ExamList />} />
             <Route path="/documents" element={<Documents />} />
 
             {/* Student Protected */}
+            <Route
+              path="/documents/:id"
+              element={
+                <ProtectedRoute>
+                  <DocumentDetail />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/practice/:sessionId"
               element={
@@ -127,6 +139,8 @@ function App() {
             <Route path="exams/add" element={<ExamManager />} />
             <Route path="exams/:examId/questions" element={<ExamQuestions />} />
             <Route path="documents" element={<DocumentManager />} />
+            <Route path="videos" element={<VideoManager />} />
+            <Route path="videos/add" element={<VideoManager />} />
             <Route path="students" element={<StudentManager />} />
             <Route path="stats" element={<TeacherStats />} />
           </Route>

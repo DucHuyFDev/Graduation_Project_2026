@@ -524,11 +524,11 @@ def students_list(request):
             if q:
                 c.execute("""
                     SELECT COUNT(*) FROM users
-                    WHERE role='student' AND is_deleted=False
+                    WHERE role='student'
                     AND pgp_sym_decrypt(username_enc, %s) ILIKE %s
                 """, [key, f'%{q}%'])
             else:
-                c.execute("SELECT COUNT(*) FROM users WHERE role='student' AND is_deleted=False")
+                c.execute("SELECT COUNT(*) FROM users WHERE role='student'")
             total = c.fetchone()[0]
 
             # Lấy danh sách kèm thống kê
@@ -540,11 +540,12 @@ def students_list(request):
                        u.last_login,
                        COUNT(DISTINCT ps.id) AS practice_count,
                        COUNT(DISTINCT ea.id) AS exam_count,
-                       ROUND(AVG(ea.score)::numeric, 2) AS avg_score
+                       ROUND(AVG(ea.score)::numeric, 2) AS avg_score,
+                       u.is_deleted
                 FROM users u
                 LEFT JOIN practice_sessions ps ON ps.user_id = u.id
                 LEFT JOIN exam_attempts ea ON ea.user_id = u.id AND ea.submitted_at IS NOT NULL
-                WHERE u.role='student' AND u.is_deleted=False
+                WHERE u.role='student'
             """
             if q:
                 c.execute(
@@ -570,6 +571,7 @@ def students_list(request):
                 "practice_count": row[5] or 0,
                 "exam_count": row[6] or 0,
                 "avg_score": float(row[7]) if row[7] is not None else None,
+                "is_deleted": bool(row[8]),
             }
             for row in rows
         ]
@@ -578,3 +580,38 @@ def students_list(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+@csrf_exempt
+@require_auth(roles=["teacher"])
+def lock_student(request, user_id):
+    """Khóa tài khoản học sinh."""
+    if request.method != 'POST':
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+    try:
+        with connection.cursor() as c:
+            c.execute("UPDATE users SET is_deleted = True WHERE id = %s AND role = 'student'", [user_id])
+            if c.rowcount == 0:
+                return JsonResponse({"error": "Không tìm thấy học sinh"}, status=404)
+        return JsonResponse({"message": "Khóa tài khoản thành công"})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@csrf_exempt
+@require_auth(roles=["teacher"])
+def unlock_student(request, user_id):
+    """Mở khóa tài khoản học sinh."""
+    if request.method != 'POST':
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+    try:
+        with connection.cursor() as c:
+            c.execute("UPDATE users SET is_deleted = False WHERE id = %s AND role = 'student'", [user_id])
+            if c.rowcount == 0:
+                return JsonResponse({"error": "Không tìm thấy học sinh"}, status=404)
+        return JsonResponse({"message": "Mở khóa tài khoản thành công"})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+

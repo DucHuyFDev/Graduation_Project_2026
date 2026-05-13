@@ -3,7 +3,7 @@ import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import {
   BookOpen, FileText, Library, BarChart2,
-  ChevronDown, User, LogOut, Settings, LayoutDashboard, AlertCircle
+  ChevronDown, User, LogOut, Settings, LayoutDashboard, AlertCircle, PlayCircle
 } from 'lucide-react'
 import ConfirmModal from './ConfirmModal'
 
@@ -69,6 +69,12 @@ function Navbar() {
               <span className="flex items-center gap-1.5">
                 <BookOpen size={15} />
                 Làm câu hỏi luyện tập
+              </span>
+            </NavLink>
+            <NavLink to="/videos" className={navLinkClass}>
+              <span className="flex items-center gap-1.5">
+                <PlayCircle size={15} />
+                Video bài giảng
               </span>
             </NavLink>
             <NavLink to="/exams" className={navLinkClass}>

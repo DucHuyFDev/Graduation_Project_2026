@@ -1,0 +1,90 @@
+================================================================
+MATHPRO — TỔNG QUAN HỆ THỐNG & CHI TIẾT LUỒNG DỮ LIỆU
+Dự án: MathPro - Hệ thống học tập Toán THPT luyện thi
+Tác giả: Lê Đức Huy
+================================================================
+
+1. TỔNG QUAN DỰ ÁN
+MathPro là nền tảng học trực tuyến dành cho học sinh THPT, tập trung vào ôn luyện môn Toán. Hệ thống hỗ trợ 2 vai trò chính:
+- Student: Luyện tập theo chuyên đề, thi thử, xem tài liệu, tương tác với AI Tutor.
+- Teacher: Quản lý câu hỏi, tải PDF để AI bóc tách câu hỏi, quản lý đề thi và theo dõi tiến độ học sinh.
+
+2. CẤU TRÚC THƯ MỤC CHÍNH
+mathpro/
+├── backend/                  # Django project
+│   ├── config/               # Settings, URLs, Middleware, Permissions
+│   ├── apps/                 # 8 Django apps quản lý các module riêng biệt
+│   │   ├── accounts/         # Auth, User, Profile (Mã hóa pgcrypto)
+│   │   ├── topics/           # Cây chuyên đề (Topic tree)
+│   │   ├── questions/        # Ngân hàng câu hỏi (MCQ, TF, Short)
+│   │   ├── exams/            # Đề thi, ca thi, kết quả thi
+│   │   ├── practice/         # Luyện tập tự do & tính tiến độ
+│   │   ├── documents/        # Tài liệu học tập (PDF/Video)
+│   │   ├── ai_tutor/         # Logic AI Chat & Gemini API
+│   │   └── stats/            # Thống kê & Báo cáo
+│   └── requirements.txt      # Thư viện Python
+├── frontend/                 # React project (Vite + TailwindCSS v4)
+│   ├── src/
+│   │   ├── api/              # Axios instances & API calls
+│   │   ├── components/       # UI Components chung (MathRenderer, Navbar,...)
+│   │   ├── contexts/         # AuthContext quản lý state đăng nhập
+│   │   ├── pages/            # Các trang giao diện Student & Teacher
+│   │   └── App.jsx           # Router chính
+│   └── package.json          # Thư viện JS
+└── instruction/              # Quy tắc dự án & Task tracking
+
+3. CHI TIẾT LUỒNG XỬ LÝ DỮ LIỆU (DATA PIPELINE)
+
+A. Luồng Lưu trữ & Hiển thị Nội dung (Content JSON Pipeline)
+- Cấu trúc: Thay vì dùng Text thuần, hệ thống dùng cấu trúc Block JSON:
+  ```json
+  { "blocks": [
+      { "type": "paragraph", "content": [
+          { "type": "text", "value": "Tính đạo hàm của " },
+          { "type": "math", "value": "f(x) = x^2" }
+      ]}
+  ]}
+  ```
+- Write Flow (Teacher): Teacher soạn thảo -> MathLive chuyển công thức sang LaTeX -> Axios gửi JSON string -> Backend `json.loads` -> Lưu vào cột `JSONField` của PostgreSQL.
+- Read Flow (Frontend): Backend `serialize_question` chuyển `JSONField` thành dict -> Frontend nhận qua API -> `MathRenderer` duyệt mảng blocks -> Render `react-katex` cho type "math".
+
+B. Luồng Xác thực Phức hợp (Security Pipeline)
+- Lưu trữ User: 
+  - Username/Email: Mã hóa AES bằng SQL: `pgp_sym_encrypt(value, key)`.
+  - Password: Hash bằng Django `PBKDF2`.
+- Middleware Flow: 
+  - Mọi request đi qua `JWTAuthMiddleware`.
+  - Dùng `jwt.decode` để lấy `user_id`.
+  - Gắn trực tiếp vào `request.user_id` để các View sử dụng mà không cần truy vấn DB lấy User object (tăng hiệu năng).
+
+C. Luồng Luyện tập thông minh (Practice Data Flow)
+- Cơ chế chọn câu hỏi: Sử dụng SQL `WITH RECURSIVE` để "duyệt cây" chuyên đề từ trên xuống dưới, đảm bảo lấy đúng các câu hỏi của cả chuyên đề con.
+- Thuật toán tiến độ:
+  1. Đếm tổng số câu hỏi trong chuyên đề (`total`).
+  2. Lấy danh sách câu trả lời đúng của User.
+  3. Lọc ra những câu hỏi đã trả lời đúng >= 2 lần (`correct_2plus`).
+  4. Phần trăm hoàn thành = `(correct_2plus / (total * 2)) * 100`.
+
+D. Luồng Chấm điểm Đề thi (Exam Scoring Pipeline)
+- Quy trình: Frontend gửi mảng `answers` (question_id, answer_data).
+- Backend Algorithm (`calculate_score`):
+  - MCQ: So sánh `selected_key` với `is_correct=True` trong DB. (0.25đ).
+  - Đúng/Sai: Duyệt mảng `statements`, đếm số ý đúng/sai. Điểm bậc thang: 1 ý đúng (0.1đ) -> 4 ý đúng (1.0đ).
+  - Trả lời ngắn: Chuyển đổi về float, so sánh với sai số `abs(user - correct) < 0.01`.
+- Thang điểm: Tổng điểm thành phần (`earned`) chia tổng điểm tối đa (`max_possible`) nhân 10.
+
+E. Luồng AI & Xử lý PDF (AI Pipeline)
+- Trích xuất: `PyMuPDF` mở file -> `page.get_text("text")` -> Ghép chuỗi thô.
+- Prompt Engineering: 
+  1. System Prompt định nghĩa vai trò "Nam Trợ lý" (văn phong Hà Nội, hài hước).
+  2. Structured Prompt cung cấp schema JSON mẫu cho Gemini.
+- Transform: Gemini nhận text thô -> Output JSON string -> Backend dùng Regex xóa tag markdown (` ```json `) -> `json.loads` -> Map vào DB model.
+
+4. CÔNG NGHỆ & QUY TẮC PHÁT TRIỂN
+- Backend: Django 5 (Function-based view), Raw SQL cho xử lý đệ quy/mã hóa.
+- Frontend: React 19, TailwindCSS v4, MathLive/KaTeX cho Toán học.
+- Quy tắc: Tuyệt đối không dùng CASCADE DELETE, chỉ dùng Soft Delete (`is_deleted`).
+
+================================================================
+Ghi chú: Tài liệu này mô tả chi tiết các pipeline dữ liệu của MathPro.
+Cập nhật lần cuối: 10/05/2026 23:28

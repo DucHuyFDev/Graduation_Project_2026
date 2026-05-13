@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     'apps.documents',
     'apps.ai_tutor',
     'apps.stats',
+    'apps.videos',
+    'apps.comments',
 ]
 
 MIDDLEWARE = [
@@ -48,7 +50,8 @@ MIDDLEWARE = [
     'config.middleware.JWTAuthMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # CSRF tắt — dự án dùng JWT auth, không dùng session/cookie
+    # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -132,8 +135,17 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom Settings
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173"
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
+
+# Cho phép PUT/POST/DELETE từ frontend local (CSRF origin check)
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+CORS_ALLOW_CREDENTIALS = True
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'

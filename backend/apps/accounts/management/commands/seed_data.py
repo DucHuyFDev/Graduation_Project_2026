@@ -7,6 +7,7 @@ from apps.accounts.models import User
 from apps.topics.models import Topic
 from apps.questions.models import Question, QuestionOption, QuestionTFStatement, QuestionShortAnswer
 from apps.exams.models import Exam, ExamQuestion
+from apps.videos.models import Video
 
 class Command(BaseCommand):
     help = "Seed data for MathPro system"
@@ -18,15 +19,18 @@ class Command(BaseCommand):
             with transaction.atomic():
                 # 1. Create Users
                 self.seed_users()
-                
+
                 # 2. Create Topics
                 topics_map = self.seed_topics()
-                
+
                 # 3. Create Questions
                 questions_list = self.seed_questions(topics_map)
-                
+
                 # 4. Create Exams
                 self.seed_exams(questions_list, topics_map)
+
+                # 5. Create Videos (topic_lesson + live_session)
+                self.seed_videos(topics_map)
 
             self.stdout.write(self.style.SUCCESS("Successfully seeded all data!"))
         except Exception as e:
@@ -107,11 +111,29 @@ class Command(BaseCommand):
             defaults={"parent": hinh_hoc, "level": 2, "order_index": 3}
         )
 
+        # Level 3 - Bổ sung cho seed_videos (gắn video vào topic cụ thể hơn)
+        gioi_han, _ = Topic.objects.get_or_create(
+            name="Giới hạn của hàm số",
+            defaults={"parent": ham_so, "level": 3, "order_index": 1}
+        )
+        dao_ham, _ = Topic.objects.get_or_create(
+            name="Đạo hàm và ứng dụng",
+            defaults={"parent": ham_so, "level": 3, "order_index": 2}
+        )
+        log_co_so, _ = Topic.objects.get_or_create(
+            name="Logarit và phương trình logarit",
+            defaults={"parent": lu_thua, "level": 3, "order_index": 1}
+        )
+
         return {
-            "ham_so": ham_so,
-            "lu_thua": lu_thua,
+            "ham_so":           ham_so,
+            "lu_thua":          lu_thua,
             "to_do_khong_gian": to_do_khong_gian,
-            "so_phuc": so_phuc
+            "so_phuc":          so_phuc,
+            # Topic cấp 3 — dùng cho seed_videos
+            "gioi_han":         gioi_han,
+            "dao_ham":          dao_ham,
+            "log_co_so":        log_co_so,
         }
 
     def create_content_json(self, text, math=""):
@@ -197,3 +219,91 @@ class Command(BaseCommand):
                 question=q,
                 order_index=idx + 1
             )
+
+    def seed_videos(self, topics_map):
+        """Tao du lieu mau video: 3 topic_lesson + 2 live_session, dung raw SQL."""
+        self.stdout.write("Seeding videos...")
+
+        # Lay teacher ID (da duoc tao o seed_users)
+        teacher = User.objects.find_by_username("teacher")
+        if not teacher:
+            self.stdout.write(self.style.WARNING("Khong tim thay teacher, bo qua seed videos"))
+            return
+
+        teacher_id = teacher.id
+
+        # Kiem tra neu da co video thi bo qua (idempotent)
+        if Video.objects.filter(is_deleted=False).exists():
+            self.stdout.write("  Videos da ton tai, bo qua.")
+            return
+
+        # 3 video topic_lesson — moi video gan 1 topic cap 3 khac nhau
+        topic_lessons = [
+            {
+                "title":       "Gioi han cua ham so - Phan 1: Khai niem co ban",
+                "description": "Video bai giang ve dinh nghia va tinh chat cua gioi han ham so",
+                "youtube_id":  "dQw4w9WgXcQ",
+                "topic_id":    topics_map["gioi_han"].id,
+                "order_index": 1,
+            },
+            {
+                "title":       "Dao ham - Phan 1: Dinh nghia va quy tac tinh dao ham",
+                "description": "Huong dan tinh dao ham bang dinh nghia va cac cong thuc co ban",
+                "youtube_id":  "9bZkp7q19f0",
+                "topic_id":    topics_map["dao_ham"].id,
+                "order_index": 1,
+            },
+            {
+                "title":       "Phuong trinh Logarit - Phan 1: Cac dang co ban",
+                "description": "Giai phuong trinh logarit theo cac dang co ban thuong gap trong de thi",
+                "youtube_id":  "kJQP7kiw5Fk",
+                "topic_id":    topics_map["log_co_so"].id,
+                "order_index": 1,
+            },
+        ]
+
+        # 2 video live_session — khong can gan topic
+        live_sessions = [
+            {
+                "title":       "Buoi hoc 10/05/2026 - On tap chuong Ham so va do thi",
+                "description": "Buoi hoc truc tiep on tap toan bo chuong ham so, phan tich de thi thu",
+                "youtube_id":  "L_jWHffIx5E",
+                "topic_id":    None,
+                "order_index": 0,
+            },
+            {
+                "title":       "Buoi hoc 12/05/2026 - Giai de thi thu tot nghiep THPT",
+                "description": "Livestream giai de thi thu co giai thich chi tiet tung cau",
+                "youtube_id":  "fJ9rUzIMcZQ",
+                "topic_id":    None,
+                "order_index": 0,
+            },
+        ]
+
+        count = 0
+        with connection.cursor() as cur:
+            for v in topic_lessons:
+                cur.execute("""
+                    INSERT INTO videos
+                        (title, description, youtube_id, topic_id, category,
+                         order_index, is_deleted, created_by, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, 'topic_lesson', %s, False, %s, NOW(), NOW())
+                """, [
+                    v["title"], v["description"], v["youtube_id"],
+                    v["topic_id"], v["order_index"], teacher_id
+                ])
+                count += 1
+
+            for v in live_sessions:
+                cur.execute("""
+                    INSERT INTO videos
+                        (title, description, youtube_id, topic_id, category,
+                         order_index, is_deleted, created_by, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, 'live_session', %s, False, %s, NOW(), NOW())
+                """, [
+                    v["title"], v["description"], v["youtube_id"],
+                    v["topic_id"], v["order_index"], teacher_id
+                ])
+                count += 1
+
+        self.stdout.write(self.style.SUCCESS(f"  Da tao {count} video mau"))

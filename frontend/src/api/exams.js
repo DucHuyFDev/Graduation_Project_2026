@@ -27,3 +27,12 @@ export const createExam = (data) =>
 /** Xóa mềm đề thi (teacher) */
 export const deleteExam = (examId) =>
   axiosInstance.delete(`/exams/${examId}/`).then(r => r.data)
+
+/** Tải lên file PDF đáp án cho đề thi (teacher) */
+export const uploadExamPdf = (examId, file) => {
+  const formData = new FormData()
+  formData.append('pdf_file', file)
+  return axiosInstance.post(`/exams/${examId}/upload-pdf/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }).then(r => r.data)
+}

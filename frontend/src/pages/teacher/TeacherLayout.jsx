@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Outlet, NavLink } from "react-router-dom";
 import {
   LayoutDashboard, FileQuestion, FileText, Users, BarChart3,
-  ChevronDown, ChevronRight, Plus, List, Upload, LogOut, User, AlertCircle,
+  ChevronDown, ChevronRight, Plus, List, Upload, LogOut, User, AlertCircle, PlayCircle,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import ConfirmModal from "../../components/ConfirmModal";
@@ -132,6 +132,17 @@ function TeacherLayout() {
             icon={FileText}
             label="Tài liệu"
           />
+
+          <SidebarItem
+            icon={PlayCircle}
+            label="Video bài giảng"
+            menuKey="videos"
+            subItems={[
+              { to: "/teacher/videos",     label: "Danh sách", icon: List },
+              { to: "/teacher/videos/add", label: "Thêm video", icon: Plus },
+            ]}
+          />
+
           <SidebarItem to="/teacher/students" icon={Users} label="Học sinh" />
           <SidebarItem to="/teacher/stats" icon={BarChart3} label="Thống kê" />
         </nav>

@@ -12,3 +12,10 @@ export const getStatsTeacher = () =>
 export const getStudents = (params = {}) =>
   axiosInstance.get('/stats/students/', { params }).then(r => r.data)
 
+/** Khóa tài khoản học sinh */
+export const lockStudent = (id) =>
+  axiosInstance.post(`/stats/students/${id}/lock/`).then(r => r.data)
+
+/** Mở khóa tài khoản học sinh */
+export const unlockStudent = (id) =>
+  axiosInstance.post(`/stats/students/${id}/unlock/`).then(r => r.data)

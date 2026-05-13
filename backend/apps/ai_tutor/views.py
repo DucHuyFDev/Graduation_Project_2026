@@ -170,34 +170,75 @@ def session_messages(request, session_id):
 @require_auth(roles=["teacher"])
 def parse_pdf(request):
     """
-    Upload PDF đề thi, dùng PyMuPDF extract text + Gemini để trích xuất câu hỏi.
-    Trả JSON array các câu hỏi đã parse với image.url luôn là null.
+    Upload PDF đề thi, dùng PyMuPDF render ảnh + Gemini Vision để trích xuất câu hỏi.
+    Hỗ trợ câu hỏi có hình vẽ/đồ thị (has_image=True).
+    PDF > 5 trang: gọi Gemini nhiều batch, mỗi batch ≤ 5 trang.
+    Ảnh embedded trong PDF được lưu vào media/question_images/.
     """
+    import base64
+    import time
     import json as _json
+    from django.core.files.base import ContentFile
+    from django.core.files.storage import default_storage
+    from django.conf import settings as dj_settings
+
     if request.method != 'POST':
         return JsonResponse({"error": "Method not allowed"}, status=405)
 
     try:
-        # Nhận file PDF qua request.FILES["file"]
         pdf_file = request.FILES.get('file')
         if not pdf_file:
             return JsonResponse({"error": "Thiếu file PDF (field: file)", "code": "MISSING_FILE"}, status=400)
-
         if not pdf_file.name.lower().endswith('.pdf'):
             return JsonResponse({"error": "Chỉ chấp nhận file PDF", "code": "INVALID_TYPE"}, status=400)
 
-        # Đọc PDF bằng PyMuPDF — chỉ extract text, KHÔNG extract ảnh
         pdf_bytes = pdf_file.read()
         doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-        extracted_text = "".join(page.get_text() for page in doc)
+
+        # ── Bước 1: Render từng trang thành PNG + extract text ──────────
+        pages_data = []
+        for page_num in range(len(doc)):
+            page = doc[page_num]
+            # Render trang thành ảnh PNG (dpi=150)
+            pix = page.get_pixmap(dpi=150)
+            png_bytes = pix.tobytes("png")
+            pages_data.append({
+                "page_num":  page_num,
+                "image_b64": base64.b64encode(png_bytes).decode("utf-8"),
+                "text":      page.get_text(),
+            })
+
+        # ── Bước 2: Extract ảnh embedded trong PDF → lưu vào media/ ────
+        ts = int(time.time())
+        extracted_image_urls = []  # danh sách url ảnh embedded đã lưu
+        img_idx = 0
+        for page_num in range(len(doc)):
+            page = doc[page_num]
+            for img_info in page.get_images(full=True):
+                xref = img_info[0]
+                try:
+                    base_img = doc.extract_image(xref)
+                    img_bytes = base_img["image"]
+                    ext = base_img.get("ext", "png")
+                    rel_path = f"question_images/parse_{ts}_{img_idx}.{ext}"
+                    saved_path = default_storage.save(rel_path, ContentFile(img_bytes))
+                    img_url = request.build_absolute_uri(
+                        dj_settings.MEDIA_URL + saved_path
+                    )
+                    extracted_image_urls.append(img_url)
+                    img_idx += 1
+                except Exception:
+                    # Bỏ qua ảnh không extract được
+                    pass
+
         doc.close()
 
-        if not extracted_text.strip():
-            return JsonResponse({"error": "Không đọc được nội dung text từ PDF", "code": "EMPTY_TEXT"}, status=400)
+        if not pages_data:
+            return JsonResponse({"error": "PDF không có trang nào", "code": "EMPTY_PDF"}, status=400)
 
-        # Gọi Gemini để parse câu hỏi (text-only, không ảnh)
+        # ── Bước 3: Gọi Gemini Vision multimodal (batch ≤ 5 trang) ─────
         try:
-            questions = gemini_service.parse_pdf_with_gemini(text_content=extracted_text)
+            questions = gemini_service.parse_pdf_multimodal(pages_data=pages_data)
         except _json.JSONDecodeError as je:
             return JsonResponse(
                 {"error": f"Gemini trả về JSON không hợp lệ: {str(je)}", "code": "INVALID_JSON"},
@@ -209,7 +250,24 @@ def parse_pdf(request):
                 status=500
             )
 
-        return JsonResponse({"questions": questions, "total": len(questions)})
+        # ── Bước 4: Gắn image_description vào content_json (block riêng) ─
+        for q in questions:
+            has_image = q.get("has_image", False)
+            img_desc = q.get("image_description", "").strip()
+            if has_image and img_desc:
+                # Thêm block image_desc vào cuối blocks của question
+                blocks = q.get("question", {}).get("blocks", [])
+                blocks.append({"type": "image_desc", "value": img_desc})
+                if "question" in q:
+                    q["question"]["blocks"] = blocks
+            # Đảm bảo image.url luôn null (ảnh extracted trả riêng qua extracted_images)
+            q["image"] = {"url": None}
+
+        return JsonResponse({
+            "questions":        questions,
+            "total":            len(questions),
+            "extracted_images": extracted_image_urls,
+        })
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)

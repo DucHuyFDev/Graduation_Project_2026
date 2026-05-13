@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { FileText, Download, Search, Loader2, X, Eye, ExternalLink } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { FileText, Download, Search, Loader2, X, Eye, ExternalLink, MessageCircle } from 'lucide-react'
 import documentsApi from '../api/documents'
 
 // ─── PDF Viewer Modal ──────────────────────────────────────────
@@ -151,7 +152,14 @@ function Documents() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-[#1e3a5f] text-sm leading-snug mb-1 line-clamp-2">{doc.title}</h3>
-                      <p className="text-xs text-gray-400">{new Date(doc.created_at).toLocaleDateString('vi-VN')}</p>
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <p className="text-xs text-gray-400">{new Date(doc.created_at).toLocaleDateString('vi-VN')}</p>
+                        {doc.root_comment_count > 0 && (
+                          <span className="flex items-center gap-1 text-xs text-gray-400">
+                            <MessageCircle size={11} />{doc.root_comment_count}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -182,6 +190,15 @@ function Documents() {
                     ) : (
                       <span className="text-xs text-gray-400 italic">Chưa có file</span>
                     )}
+                    {/* Link đến trang chi tiết + bình luận */}
+                    <Link
+                      to={`/documents/${doc.id}`}
+                      className="flex items-center justify-center gap-1 px-3 py-2 bg-gray-50 text-gray-500 rounded-xl text-xs font-semibold hover:bg-gray-100 transition-all border border-gray-100"
+                      title="Xem bình luận"
+                    >
+                      <MessageCircle size={14} />
+                      {doc.root_comment_count > 0 ? doc.root_comment_count : ''}
+                    </Link>
                   </div>
                 </div>
               </div>

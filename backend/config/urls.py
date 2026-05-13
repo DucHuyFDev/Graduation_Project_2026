@@ -13,6 +13,8 @@ urlpatterns = [
     path('api/documents/', include('apps.documents.urls')),
     path('api/ai/', include('apps.ai_tutor.urls')),
     path('api/stats/', include('apps.stats.urls')),
+    path('api/videos/', include('apps.videos.urls')),
+    path('api/comments/', include('apps.comments.urls')),
 ]
 
 if settings.DEBUG:

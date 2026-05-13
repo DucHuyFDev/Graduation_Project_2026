@@ -5,7 +5,7 @@ import {
   FileText, Clock, BookOpen, AlertCircle, Check, Loader2
 } from "lucide-react"
 import MathRenderer from "../../components/MathRenderer"
-import { getExams, createExam, deleteExam } from "../../api/exams"
+import { getExams, createExam, deleteExam, uploadExamPdf } from "../../api/exams"
 import { getQuestions } from "../../api/questions"
 import { getTopicsTree } from "../../api/topics"
 
@@ -21,6 +21,7 @@ function ExamManager() {
 
   // Form state
   const [form, setForm] = useState({ title: "", description: "", duration: "", exam_type: "topic" })
+  const [pdfFile, setPdfFile] = useState(null)
   const [formError, setFormError] = useState("")
   const [saving, setSaving] = useState(false)
 
@@ -78,7 +79,7 @@ function ExamManager() {
       })
       flatten(tree)
       setTopics(flat)
-    } catch (e) {}
+    } catch (e) { }
   }
 
   const handleCreate = async () => {
@@ -89,7 +90,17 @@ function ExamManager() {
     if (selectedQIds.length === 0) { setFormError("Vui lòng chọn ít nhất 1 câu hỏi"); return }
     setSaving(true); setFormError("")
     try {
-      await createExam({ ...form, question_ids: selectedQIds })
+      const newExam = await createExam({ ...form, question_ids: selectedQIds })
+
+      if (pdfFile) {
+        try {
+          await uploadExamPdf(newExam.id, pdfFile)
+        } catch (uploadErr) {
+          console.error("Lỗi upload PDF:", uploadErr)
+          // Vẫn cho qua vì đã tạo đề thi thành công
+        }
+      }
+
       setShowModal(false)
       resetModal()
       // Nếu đang ở /add thì redirect về /exams
@@ -118,6 +129,7 @@ function ExamManager() {
 
   const resetModal = () => {
     setForm({ title: "", description: "", duration: "", exam_type: "topic" })
+    setPdfFile(null)
     setSelectedQIds([]); setQSearch(""); setQPage(1); setFilterTopic("")
     setFormError("")
   }
@@ -130,10 +142,10 @@ function ExamManager() {
 
   // Map exam_type sang label và màu
   const EXAM_TYPE_MAP = {
-    topic:      { label: 'Test chuyên đề',    cls: 'bg-blue-100 text-blue-700' },
-    midterm:    { label: 'Giữa kỳ',          cls: 'bg-purple-100 text-purple-700' },
-    final:      { label: 'Cuối kỳ',           cls: 'bg-orange-100 text-orange-700' },
-    graduation: { label: 'Thi thử TNTHPT',   cls: 'bg-red-100 text-red-700' },
+    topic: { label: 'Test chuyên đề', cls: 'bg-blue-100 text-blue-700' },
+    midterm: { label: 'Giữa kỳ', cls: 'bg-purple-100 text-purple-700' },
+    final: { label: 'Cuối kỳ', cls: 'bg-orange-100 text-orange-700' },
+    graduation: { label: 'Thi thử TNTHPT', cls: 'bg-red-100 text-red-700' },
   }
 
   return (
@@ -145,7 +157,7 @@ function ExamManager() {
           onClick={() => { resetModal(); setShowModal(true) }}
           className="bg-[#f5a623] hover:bg-[#e09410] text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-orange-200 transition-all active:scale-95"
         >
-          <Plus size={20}/> Tạo đề thi mới
+          <Plus size={20} /> Tạo đề thi mới
         </button>
       </div>
 
@@ -174,7 +186,7 @@ function ExamManager() {
                 </td>
                 <td className="px-6 py-4 text-center text-sm text-gray-600">
                   <div className="flex items-center justify-center gap-1">
-                    <Clock size={14} className="text-gray-400"/> {exam.duration_minutes || exam.duration} phút
+                    <Clock size={14} className="text-gray-400" /> {exam.duration_minutes || exam.duration} phút
                   </div>
                 </td>
                 <td className="px-6 py-4 text-center">
@@ -190,11 +202,11 @@ function ExamManager() {
                   <div className="flex justify-end gap-2">
                     <button onClick={() => navigate(`/teacher/exams/${exam.id}/questions`)}
                       className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Xem câu hỏi">
-                      <Eye size={18}/>
+                      <Eye size={18} />
                     </button>
                     <button onClick={() => setShowDeleteConfirm(exam.id)}
                       className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Xóa">
-                      <Trash2 size={18}/>
+                      <Trash2 size={18} />
                     </button>
                   </div>
                 </td>
@@ -208,14 +220,14 @@ function ExamManager() {
           <div className="flex gap-2">
             <button disabled={page === 1} onClick={() => setPage(p => p - 1)}
               className="p-2 rounded-xl border border-gray-200 text-gray-600 disabled:opacity-30 hover:bg-white transition-all">
-              <ChevronLeft size={18}/>
+              <ChevronLeft size={18} />
             </button>
             <div className="flex items-center px-4 bg-white border border-gray-200 rounded-xl text-sm font-bold text-[#1e3a5f]">
               {page} / {totalPages}
             </div>
             <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}
               className="p-2 rounded-xl border border-gray-200 text-gray-600 disabled:opacity-30 hover:bg-white transition-all">
-              <ChevronRight size={18}/>
+              <ChevronRight size={18} />
             </button>
           </div>
         </div>
@@ -228,10 +240,10 @@ function ExamManager() {
             {/* Modal Header */}
             <div className="px-8 py-5 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
               <h3 className="font-black text-[#1e3a5f] text-lg flex items-center gap-2">
-                <FileText size={20} className="text-[#f5a623]"/> Tạo đề thi mới
+                <FileText size={20} className="text-[#f5a623]" /> Tạo đề thi mới
               </h3>
               <button onClick={closeModal} className="p-2 hover:bg-gray-100 rounded-full">
-                <X size={20} className="text-gray-400"/>
+                <X size={20} className="text-gray-400" />
               </button>
             </div>
 
@@ -252,13 +264,13 @@ function ExamManager() {
                   <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Tiêu đề *</label>
                   <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                     placeholder="Đề thi Toán HK1..."
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#f5a623]"/>
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#f5a623]" />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Mô tả</label>
                   <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                     rows={3} placeholder="Đề thi gồm..."
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#f5a623] resize-none"/>
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#f5a623] resize-none" />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">Thời gian làm bài (phút) *</label>
@@ -267,9 +279,8 @@ function ExamManager() {
                     value={form.duration}
                     onChange={e => setForm(f => ({ ...f, duration: e.target.value }))}
                     placeholder="Nhập số phút..."
-                    className={`w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#f5a623] ${
-                      form.duration === '' ? 'border-orange-300 bg-orange-50' : 'border-gray-200'
-                    }`}
+                    className={`w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-[#f5a623] ${form.duration === '' ? 'border-orange-300 bg-orange-50' : 'border-gray-200'
+                      }`}
                   />
                   {/* Preset nhanh */}
                   <div className="flex gap-1.5 mt-2 flex-wrap">
@@ -278,16 +289,41 @@ function ExamManager() {
                         key={m}
                         type="button"
                         onClick={() => setForm(f => ({ ...f, duration: m }))}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all ${
-                          parseInt(form.duration) === m
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all ${parseInt(form.duration) === m
                             ? 'bg-[#f5a623] text-white border-[#f5a623]'
                             : 'bg-white text-gray-500 border-gray-200 hover:border-[#f5a623] hover:text-[#f5a623]'
-                        }`}
+                          }`}
                       >
                         {m}p
                       </button>
                     ))}
                   </div>
+                </div>
+
+                {/* PDF Drag & Drop */}
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase mb-1 block">File PDF Đáp án</label>
+                  <label className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${pdfFile ? 'border-green-400 bg-green-50' : 'border-gray-300 hover:bg-gray-50'}`}>
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <FileText className={`w-6 h-6 mb-2 ${pdfFile ? 'text-green-500' : 'text-gray-400'}`} />
+                      <p className="text-xs text-gray-500 font-medium">
+                        {pdfFile ? pdfFile.name : 'Click hoặc Kéo thả file PDF'}
+                      </p>
+                    </div>
+                    <input type="file" accept=".pdf" className="hidden" onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file && file.type === 'application/pdf') {
+                        setPdfFile(file);
+                      } else {
+                        alert('Vui lòng chọn file PDF hợp lệ');
+                      }
+                    }} />
+                  </label>
+                  {pdfFile && (
+                    <button type="button" onClick={() => setPdfFile(null)} className="text-xs text-red-500 mt-1 hover:underline">
+                      Xóa file
+                    </button>
+                  )}
                 </div>
                 {/* Đã chọn */}
                 <div className="bg-orange-50 rounded-xl p-3 border border-orange-100">
@@ -296,13 +332,13 @@ function ExamManager() {
 
                 {formError && (
                   <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm flex items-center gap-2">
-                    <AlertCircle size={16}/> {formError}
+                    <AlertCircle size={16} /> {formError}
                   </div>
                 )}
 
                 <button onClick={handleCreate} disabled={saving}
                   className="w-full py-3 bg-[#f5a623] text-white rounded-xl font-bold hover:bg-[#e09410] transition-all disabled:opacity-60 flex items-center justify-center gap-2">
-                  {saving ? <><Loader2 size={16} className="animate-spin"/> Đang tạo...</> : "Tạo đề thi"}
+                  {saving ? <><Loader2 size={16} className="animate-spin" /> Đang tạo...</> : "Tạo đề thi"}
                 </button>
               </div>
 
@@ -310,11 +346,11 @@ function ExamManager() {
               <div className="flex-1 flex flex-col overflow-hidden">
                 <div className="p-4 border-b border-gray-100 flex gap-3 flex-shrink-0">
                   <div className="relative flex-1">
-                    <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
+                    <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input value={qSearch} onChange={e => setQSearch(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') { setQPage(1); loadQuestions() } }}
                       placeholder="Tìm câu hỏi..."
-                      className="w-full pl-9 pr-4 py-2 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#f5a623]"/>
+                      className="w-full pl-9 pr-4 py-2 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#f5a623]" />
                   </div>
                   <select value={filterTopic} onChange={e => { setFilterTopic(e.target.value); setQPage(1) }}
                     className="bg-gray-100 rounded-xl text-sm px-3 py-2 focus:outline-none">
@@ -337,7 +373,7 @@ function ExamManager() {
                       >
                         <div className="flex items-start gap-3">
                           <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${isSelected ? 'bg-[#f5a623] border-[#f5a623]' : 'border-gray-300'}`}>
-                            {isSelected && <Check size={12} className="text-white"/>}
+                            {isSelected && <Check size={12} className="text-white" />}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
@@ -348,11 +384,11 @@ function ExamManager() {
                             </div>
                             <div className="flex items-start gap-2">
                               <div className="text-sm text-gray-700 line-clamp-2 flex-1">
-                                <MathRenderer content={q.content_json}/>
+                                <MathRenderer content={q.content_json} />
                               </div>
                               {q.image_url && (
                                 <img src={`http://localhost:8000${q.image_url}`}
-                                  className="w-14 h-14 object-cover rounded-lg border border-gray-100 flex-shrink-0"/>
+                                  className="w-14 h-14 object-cover rounded-lg border border-gray-100 flex-shrink-0" />
                               )}
                             </div>
                           </div>
@@ -368,12 +404,12 @@ function ExamManager() {
                   <div className="flex gap-2">
                     <button disabled={qPage === 1} onClick={() => setQPage(p => p - 1)}
                       className="p-1.5 rounded-lg border border-gray-200 disabled:opacity-30 hover:bg-gray-50 transition-all">
-                      <ChevronLeft size={16}/>
+                      <ChevronLeft size={16} />
                     </button>
                     <span className="text-xs font-bold text-gray-600 px-2 flex items-center">{qPage}/{qTotalPages}</span>
                     <button disabled={qPage >= qTotalPages} onClick={() => setQPage(p => p + 1)}
                       className="p-1.5 rounded-lg border border-gray-200 disabled:opacity-30 hover:bg-gray-50 transition-all">
-                      <ChevronRight size={16}/>
+                      <ChevronRight size={16} />
                     </button>
                   </div>
                 </div>
@@ -388,7 +424,7 @@ function ExamManager() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-red-900/20 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
             <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertCircle size={32}/>
+              <AlertCircle size={32} />
             </div>
             <h3 className="text-xl font-bold text-gray-800 mb-2">Xóa đề thi?</h3>
             <p className="text-gray-500 text-sm mb-8">Đề thi sẽ bị xóa mềm. Bạn có chắc không?</p>

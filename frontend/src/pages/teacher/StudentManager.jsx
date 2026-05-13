@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react"
 import {
   Search, Eye, X, ChevronLeft, ChevronRight,
-  Users, BookOpen, TrendingUp, Award
+  Users, BookOpen, TrendingUp, Award, Lock, Unlock
 } from "lucide-react"
-import { getStudents } from "../../api/stats"
+import { getStudents, lockStudent, unlockStudent } from "../../api/stats"
 
 function StudentManager() {
   const [students, setStudents] = useState([])
@@ -12,6 +12,23 @@ function StudentManager() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [selectedStudent, setSelectedStudent] = useState(null)
+
+  const handleToggleLock = async (student) => {
+    const actionText = student.is_deleted ? "mở khóa" : "khóa"
+    if (!window.confirm(`Bạn có chắc muốn ${actionText} tài khoản của học sinh ${student.username}?`)) return
+    
+    try {
+      if (student.is_deleted) {
+        await unlockStudent(student.id)
+      } else {
+        await lockStudent(student.id)
+      }
+      alert(`${actionText === 'khóa' ? 'Khóa' : 'Mở khóa'} tài khoản thành công!`)
+      loadStudents()
+    } catch (error) {
+      alert(`Lỗi: ${error.response?.data?.error || error.message}`)
+    }
+  }
 
   useEffect(() => { loadStudents() }, [page])
 
@@ -90,14 +107,15 @@ function StudentManager() {
               <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-wider text-center">Luyện tập</th>
               <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-wider text-center">Bài thi</th>
               <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-wider text-center">Điểm TB</th>
-              <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-wider text-right">Chi tiết</th>
+              <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-wider text-center">Trạng thái</th>
+              <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-wider text-right">Hành động</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {loading ? (
-              <tr><td colSpan={5} className="p-20 text-center text-gray-400">Đang tải dữ liệu...</td></tr>
+              <tr><td colSpan={6} className="p-20 text-center text-gray-400">Đang tải dữ liệu...</td></tr>
             ) : students.length === 0 ? (
-              <tr><td colSpan={5} className="p-20 text-center text-gray-400">Không có học sinh nào.</td></tr>
+              <tr><td colSpan={6} className="p-20 text-center text-gray-400">Không có học sinh nào.</td></tr>
             ) : students.map(s => (
               <tr key={s.id} className="hover:bg-gray-50/50 transition-colors">
                 <td className="px-6 py-4">
@@ -124,11 +142,35 @@ function StudentManager() {
                     {s.avg_score != null ? (s.avg_score * 100).toFixed(1) + '%' : '—'}
                   </span>
                 </td>
+                <td className="px-6 py-4 text-center">
+                  {s.is_deleted ? (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                      Bị khóa
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Hoạt động
+                    </span>
+                  )}
+                </td>
                 <td className="px-6 py-4 text-right">
-                  <button onClick={() => setSelectedStudent(s)}
-                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                    <Eye size={18}/>
-                  </button>
+                  <div className="flex items-center justify-end gap-2">
+                    {s.is_deleted ? (
+                      <button onClick={() => handleToggleLock(s)} title="Mở khóa tài khoản"
+                        className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
+                        <Unlock size={18}/>
+                      </button>
+                    ) : (
+                      <button onClick={() => handleToggleLock(s)} title="Khóa tài khoản"
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                        <Lock size={18}/>
+                      </button>
+                    )}
+                    <button onClick={() => setSelectedStudent(s)} title="Xem chi tiết"
+                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                      <Eye size={18}/>
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

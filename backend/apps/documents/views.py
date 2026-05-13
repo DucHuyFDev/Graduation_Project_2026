@@ -21,24 +21,49 @@ def document_list(request):
 
 
 def _list_documents(request):
-    """Trả list tài liệu kèm file_url — public."""
+    """Trả list tài liệu kèm file_url và root_comment_count — public."""
     try:
-        docs = Document.objects.filter(is_deleted=False).order_by('-created_at')
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT
+                    d.id,
+                    d.title,
+                    d.description,
+                    d.file_url,
+                    d.created_at,
+                    COUNT(c.id) AS root_comment_count
+                FROM documents d
+                LEFT JOIN comments c
+                    ON c.target_type = 'document'
+                   AND c.target_id   = d.id
+                   AND c.parent_id   IS NULL
+                   AND c.is_deleted  = FALSE
+                WHERE d.is_deleted = FALSE
+                GROUP BY d.id
+                ORDER BY d.created_at DESC
+            """)
+            rows = cursor.fetchall()
+            cols = [desc[0] for desc in cursor.description]
+
         results = []
-        for d in docs:
+        for row in rows:
+            r = dict(zip(cols, row))
             file_url = None
-            if d.file:
-                file_url = request.build_absolute_uri(settings.MEDIA_URL + str(d.file))
+            if r['file_url']:
+                file_url = request.build_absolute_uri(settings.MEDIA_URL + r['file_url'])
             results.append({
-                "id": d.id,
-                "title": d.title,
-                "description": d.description,
-                "file_url": file_url,
-                "created_at": d.created_at.isoformat(),
+                "id":                 r['id'],
+                "title":              r['title'],
+                "description":        r['description'],
+                "file_url":           file_url,
+                "created_at":         r['created_at'].isoformat(),
+                "root_comment_count": r['root_comment_count'],
             })
         return JsonResponse({"total": len(results), "results": results})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
 
 
 @require_auth(roles=["teacher"])

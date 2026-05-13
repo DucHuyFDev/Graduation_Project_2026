@@ -173,3 +173,122 @@ Nội dung đề thi:
         q["image"] = {"url": None}
 
     return questions
+
+
+def parse_pdf_multimodal(pages_data):
+    """
+    Parse câu hỏi Toán từ PDF dùng Gemini Vision (multimodal: ảnh + text).
+
+    pages_data: list of dict, mỗi phần tử là một trang PDF:
+        {
+            "page_num":  int,          # số trang (0-based)
+            "image_b64": str,          # PNG bytes đã base64-encode
+            "text":      str,          # text extract từ page.get_text()
+        }
+
+    Xử lý batch tối đa MAX_PAGES_PER_BATCH trang/request để tránh timeout.
+    Trả về list dict câu hỏi (merge từ tất cả batch).
+    """
+    MAX_PAGES_PER_BATCH = 5
+    client = _get_client()
+
+    # Chia pages thành các batch
+    batches = [
+        pages_data[i: i + MAX_PAGES_PER_BATCH]
+        for i in range(0, len(pages_data), MAX_PAGES_PER_BATCH)
+    ]
+
+    all_questions = []
+
+    for batch in batches:
+        # Xây contents: xen kẽ ảnh và chú thích text của từng trang
+        contents = []
+        for page in batch:
+            # Phần ảnh inline base64
+            contents.append(
+                types.Part.from_bytes(
+                    data=__import__("base64").b64decode(page["image_b64"]),
+                    mime_type="image/png",
+                )
+            )
+            # Nhãn trang để Gemini phân biệt
+            contents.append(
+                types.Part(text=f"[Trang {page['page_num'] + 1} — text extract]\n{page['text']}")
+            )
+
+        # Prompt hướng dẫn
+        prompt_text = """Đây là ảnh các trang đề thi Toán THPT (kèm text extract tham khảo).
+Hãy trích xuất TẤT CẢ câu hỏi, kể cả câu có hình vẽ/đồ thị.
+Trả về JSON array THUẦN TÚY — KHÔNG markdown, KHÔNG text giải thích.
+
+Mỗi câu theo format (3 loại):
+
+MCQ:
+{
+  "type": "mcq",
+  "difficulty": 0.65,
+  "has_image": false,
+  "image_description": "",
+  "question": {"blocks": [{"type": "paragraph", "content": [{"type": "text", "value": "..."}, {"type": "math", "value": "latex..."}]}]},
+  "image": {"url": null},
+  "options": [
+    {"key": "A", "content": [{"type": "text", "value": "..."}]},
+    {"key": "B", "content": [{"type": "math", "value": "..."}]},
+    {"key": "C", "content": [{"type": "text", "value": "..."}]},
+    {"key": "D", "content": [{"type": "text", "value": "..."}]}
+  ],
+  "correct_answer": "A"
+}
+
+TRUE_FALSE_GROUP:
+{
+  "type": "true_false_group",
+  "difficulty": 0.72,
+  "has_image": false,
+  "image_description": "",
+  "question": {"blocks": [{"type": "paragraph", "content": [{"type": "text", "value": "..."}]}]},
+  "image": {"url": null},
+  "statements": [
+    {"key": "a", "content": [{"type": "text", "value": "..."}], "is_true": true},
+    {"key": "b", "content": [{"type": "text", "value": "..."}], "is_true": false},
+    {"key": "c", "content": [{"type": "text", "value": "..."}], "is_true": true},
+    {"key": "d", "content": [{"type": "text", "value": "..."}], "is_true": false}
+  ]
+}
+
+SHORT_ANSWER:
+{
+  "type": "short_answer",
+  "difficulty": 0.5,
+  "has_image": false,
+  "image_description": "",
+  "question": {"blocks": [{"type": "paragraph", "content": [{"type": "text", "value": "..."}]}]},
+  "image": {"url": null},
+  "correct_answer": "4"
+}
+
+QUY TẮC:
+- has_image = true nếu câu hỏi có hình vẽ/đồ thị đính kèm trong ảnh trang
+- image_description: mô tả ngắn hình vẽ nếu has_image=true, để trống nếu false
+- difficulty: số thực 0.0-1.0 tự ước tính
+- image.url LUÔN null
+- correct_answer cho mcq là "A","B","C","D"
+- Chỉ dùng 3 type: mcq, true_false_group, short_answer
+"""
+        contents.append(types.Part(text=prompt_text))
+
+        response = client.models.generate_content(
+            model=settings.GEMINI_MODEL,
+            contents=contents,
+        )
+
+        response_text = response.text.strip()
+        # Xóa markdown code block nếu Gemini trả về ```json ... ```
+        response_text = re.sub(r'^```json\s*', '', response_text)
+        response_text = re.sub(r'^```\s*', '', response_text)
+        response_text = re.sub(r'\s*```$', '', response_text)
+
+        batch_questions = json.loads(response_text)
+        all_questions.extend(batch_questions)
+
+    return all_questions

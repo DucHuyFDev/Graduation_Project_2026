@@ -1,0 +1,23 @@
+{
+  "pythonVersion": "3.12",
+  "pythonPlatform": "Windows",
+  // Thư mục chứa virtualenv (tính từ vị trí file này)
+  "venvPath": ".",
+  "venv": "venv",
+  // Thêm thư mục backend/ vào Python path để Pylance resolve
+  // được "from apps.xxx import yyy" giống như Django manage.py làm
+  "extraPaths": [
+    "."
+  ],
+  // Chỉ phân tích apps/ và config/, bỏ qua venv/ và media/
+  "include": [
+    "apps",
+    "config"
+  ],
+  "exclude": [
+    "venv",
+    "media",
+    "**/migrations",
+    "**/__pycache__"
+  ]
+}
